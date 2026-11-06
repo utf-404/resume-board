@@ -109,17 +109,25 @@ cd /home/junryeol/ws/resume-board
 - 로컬 등록 목록 .data, 캐시, 인증 정보와 외부 프로젝트 파일은 업로드하지 않음.
 - 전역 AGENTS.md 원본은 바꾸거나 복사하지 않고 규칙을 문서로 설명.
 
+### 실행한 검증과 결과
+- 로컬 테스트 9개 통과, start.sh 문법 검사 및 git diff --cached --check 통과.
+- GitHub https://github.com/utf-404/resume-board 생성·push 완료. 비공개, 기본 브랜치 main 확인.
+- 최초 업로드 commit 281ffcc08b5e0c1ff305d25e7a6c71cc463937d3의 로컬/원격 HEAD 일치 확인.
+- 임시 경로 fresh clone에서 추적 파일 SHA 일치, .data 제외, start.sh 실행권한 보존 확인.
+- fresh clone에서도 테스트 9개 통과.
+- 소스·문서 9개만 추적하며 .data와 __pycache__는 무시됨. 외부 프로젝트 파일 및 인증 정보 업로드 없음.
+- 기존 브라우저 시각/클릭 검증 제한은 유지. 문서화와 Git 업로드 외 앱 코드 변경 없음.
+
 ### 진행 중인 부분
-- Git 초기화, 테스트, 커밋과 업로드 및 원격 검증.
+- 없음. README 정리와 GitHub 업로드 완료.
 
 ### 남은 작업 순서
-1. 테스트 및 업로드 파일 확인.
-2. 새 비공개 저장소 생성·push.
-3. 원격 HEAD 및 fresh clone 검증, 최종 인계 기록 갱신.
+- 요청 범위의 잔여 작업 없음.
 
 ### 다음 실행 명령
 ```bash
-python3 -m unittest -v
+cd /home/junryeol/ws/resume-board
+./start.sh
 ```
 
 ### 막힌 사항
