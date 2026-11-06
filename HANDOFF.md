@@ -316,16 +316,17 @@ cd /home/junryeol/ws/resume-board
 - README 인계 예시를 실제 parse_handoff로 검사: 목표·완료·결정·검증·진행·할 일·명령 분류 통과.
 - 문서 상대 링크의 대상 파일과 개인 절대경로 미포함 확인.
 - git diff --check 통과. 문서만 변경해 앱 전체 테스트는 재실행하지 않음.
+- 문서 변경 커밋 b71a99f push 완료. git ls-remote로 원격 main 반영 확인.
 
 ### 진행 중인 부분
-- 문서 commit/push 및 원격 일치 확인.
+- 없음. 안내와 예시 작성, commit/push 완료.
 
 ### 남은 작업 순서
-- 문서를 commit/push하고 원격 main 반영을 확인한다.
+- 요청 범위의 잔여 작업 없음.
 
 ### 다음 실행 명령
 ```bash
-git push origin main
+./start.sh
 ```
 
 ### 막힌 사항
