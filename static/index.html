@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f5f7fb"><title>Resume Board · 작업 이어가기</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<aside class="sidebar">
+  <a class="brand" href="/" aria-label="Resume Board 홈"><span class="brand-icon">↗</span><span>resume<span class="brand-light">board</span><small>LOCAL WORKSPACE</small></span></a>
+  <div class="sidebar-heading">내 프로젝트 <span id="project-count">0</span></div>
+  <div class="search"><span>⌕</span><input id="search" aria-label="프로젝트 검색" placeholder="프로젝트 검색"></div>
+  <nav id="project-list" aria-label="프로젝트 목록"></nav>
+  <button class="add-project" id="add-project">＋ 프로젝트 등록</button>
+  <div class="sidebar-bottom"><span class="live-dot"></span> 내 컴퓨터에서 실행 중<small>기록은 로컬에만 보관됩니다.</small></div>
+</aside>
+<main>
+  <header class="topbar"><div><span class="breadcrumb">워크스페이스</span><span class="slash">/</span><span>작업 이어가기</span></div><button id="refresh" class="button quiet">↻ 새로고침</button></header>
+  <div class="content">
+    <div class="welcome"><div><div class="eyebrow">PICK UP WHERE YOU LEFT OFF</div><h1>다시, 이어서 만들어요.</h1><p>멈췄던 지점과 다음 할 일을 한눈에 확인하세요.</p></div><span class="local-badge"><span class="live-dot"></span> LOCAL ONLY</span></div>
+    <div id="loading" class="empty">프로젝트를 불러오고 있습니다…</div>
+    <section id="project-view" hidden>
+      <div class="project-heading"><div class="project-identity"><div id="project-avatar" class="project-avatar">R</div><div><h2 id="project-name"></h2><p id="project-path"></p></div></div><div class="project-actions"><button id="open-folder" class="button">폴더 열기 ↗</button><button id="remove-project" class="icon-button" title="목록에서 제거" aria-label="프로젝트를 목록에서 제거">×</button></div></div>
+      <p id="summary-note" class="summary-note" hidden></p><div class="stats"><div class="stat"><span>마지막 기록</span><strong id="updated-value">—</strong><small>HANDOFF.md 수정 기준</small></div><div class="stat"><span>현재 브랜치</span><strong id="branch-value">—</strong><small>Git 작업 브랜치</small></div><div class="stat"><span>변경된 파일</span><strong id="changed-value">—</strong><small>커밋 전 작업 내용</small></div><div class="stat"><span>남은 작업 항목</span><strong id="remaining-value">—</strong><small>미완료 항목 기준</small></div></div>
+      <div class="tabs" role="tablist" aria-label="프로젝트 상세"><button role="tab" aria-controls="panel-overview" aria-selected="true" data-tab="overview">작업 개요</button><button role="tab" aria-controls="panel-handoff" aria-selected="false" data-tab="handoff">인계 기록</button><button role="tab" aria-controls="panel-git" aria-selected="false" data-tab="git">Git 변경사항 <span id="git-tab-count">0</span></button></div>
+      <div id="panel-overview" role="tabpanel">
+        <div class="overview-grid"><div class="primary-column"><article class="card goal-card"><div class="card-label"><span class="section-icon">◎</span> 이번 작업의 목표</div><div id="goal-list"></div></article><article class="card"><div class="card-heading"><h3><span class="section-icon blue">↗</span> 다음 할 일</h3><span class="chip">NEXT UP</span></div><div id="remaining-list"></div></article><article class="card" id="progress-card" hidden><h3><span class="section-icon blue">◷</span> 현재 진행 상황</h3><div id="progress-list"></div></article><article class="card" id="blocked-card" hidden><h3>확인이 필요한 부분</h3><div id="blocked-list"></div></article></div>
+        <div class="secondary-column"><article class="card command-card"><div class="card-heading"><h3>다음 실행 명령</h3><span class="tiny-label">TERMINAL</span></div><p class="card-description">복사해서 터미널에서 실행하세요.</p><div id="commands-list"></div></article><article class="card"><h3><span class="section-icon green">✓</span> 완료한 작업</h3><div id="completed-list"></div></article><div class="source-note">↻ HANDOFF.md와 Git에서 직접 읽습니다.<br>새로고침하면 최신 내용이 반영됩니다.</div></div></div>
+      </div>
+      <article class="card" id="panel-handoff" role="tabpanel" hidden><div class="card-heading"><h3>HANDOFF.md</h3><span class="tiny-label">원문 · 읽기 전용</span></div><pre id="handoff-text" class="handoff-text"></pre></article>
+      <article class="card" id="panel-git" role="tabpanel" hidden><div class="card-heading"><h3>작업 디렉터리</h3><span id="git-branch" class="chip"></span></div><div id="git-message"></div><div id="git-files"></div><div id="last-commit"></div></article>
+      <footer>RESUME BOARD <span>·</span> 작은 기록이 다음 시작을 가볍게.</footer>
+    </section>
+    <div id="empty-view" class="empty" hidden><h2>첫 프로젝트를 등록해 보세요.</h2><p>프로젝트 폴더의 절대 경로만 있으면 됩니다.</p><button class="button primary" id="empty-add">＋ 프로젝트 등록</button></div>
+  </div>
+</main>
+<dialog id="add-dialog"><form id="add-form"><div class="dialog-heading"><h2>프로젝트 등록</h2><button type="button" id="close-dialog" class="icon-button" aria-label="닫기">×</button></div><p>이 컴퓨터에 있는 프로젝트 폴더를 연결합니다.</p><label for="folder-path">프로젝트 폴더 경로</label><input id="folder-path" placeholder="/home/user/ws/my-project" required autocomplete="off"><small>HANDOFF.md나 Git이 없어도 등록할 수 있습니다.</small><p id="form-error" role="alert"></p><div class="dialog-actions"><button class="button" type="button" id="cancel-dialog">취소</button><button class="button primary" id="submit-project" type="submit">등록하기</button></div></form></dialog>
+<div id="toast" role="status" hidden></div>
+</body></html>
