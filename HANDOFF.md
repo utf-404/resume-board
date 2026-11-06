@@ -241,7 +241,7 @@ cd /home/junryeol/ws/resume-board
 - 실제 등록된 두 프로젝트와 정적 파일로 임시 포트 HTTP 검사: /, /style.css, /app.js, /api/projects 모두 200 및 최신 스키마 확인.
 - 임시 서버는 finally에서 shutdown/server_close/thread join 후 해당 포트 연결 거부 확인.
 - 수정 JavaScript Node VM 구문 검사, bash -n start.sh, git diff --check 통과.
-- 8765 포트 연결 거부 확인. 사용자 확인을 위한 서버 재실행 없음.
+- 8765 포트 연결 거부 확인. /proc 점검으로 이 프로젝트의 server.py 프로세스 없음 확인. 사용자 확인을 위한 서버 재실행 없음.
 - 브라우저 제어 host 연결 제한으로 시각/클릭 검증은 여전히 미실시.
 - 구현 에이전트 소유 파일을 통합하고 검토 에이전트 결과 반영 완료. 진행 중 하위 작업 없음.
 
@@ -249,7 +249,7 @@ cd /home/junryeol/ws/resume-board
 - 없음. 결함 수정과 서버 정리 완료.
 
 ### 남은 작업 순서
-- 요청 범위의 잔여 구현 없음. 변경 파일 commit/push 후 원격 일치를 최종 확인한다.
+- 요청 범위의 잔여 작업 없음. 수정 커밋 3a7569c push 성공 및 로컬/원격 main 일치 확인.
 
 ### 다음 실행 명령
 사용자가 원할 때 저장소 폴더에서 직접 실행하고 Ctrl+C로 종료:
