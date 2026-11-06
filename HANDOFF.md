@@ -280,18 +280,17 @@ cd /home/junryeol/ws/resume-board
 - python3 -m unittest -v: 19개 모두 통과.
 - README 예시를 실제 parse_handoff로 읽어 목표·완료·진행·할 일 2개·명령 분류와 막힌 사항 없음 확인.
 - README 개인 환경 참조 제거와 git diff --check 통과.
+- README 정리 커밋 419e89f를 origin/main에 push 완료. git ls-remote로 해당 커밋과 원격 main 일치 확인.
 
 ### 진행 중인 부분
-- 문서 변경 commit/push와 원격 일치 확인.
+- 없음. README 수정과 commit/push 완료.
 
 ### 남은 작업 순서
-- README 변경 push 후 원격 main과 로컬 HEAD 일치를 확인한다.
-- 최종 전달 결과를 이 인계 기록에 남긴다.
+- 요청 범위의 잔여 작업 없음.
 
 ### 다음 실행 명령
 ```bash
-git push origin main
-git ls-remote origin refs/heads/main
+./start.sh
 ```
 
 ### 막힌 사항
