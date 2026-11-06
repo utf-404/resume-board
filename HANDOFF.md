@@ -150,12 +150,13 @@ cd /home/junryeol/ws/resume-board
 - README.md에 `/home/` 경로가 남아 있지 않음을 확인.
 - git diff --check 통과, 경로별 기준과 기존 앱 동작의 일치 확인.
 - 문서 변경이므로 앱 테스트는 재실행하지 않음.
+- 경로 변경 커밋 bce2ea5의 push 성공 및 로컬/원격 main HEAD 일치 확인.
 
 ### 진행 중인 부분
-- 문서 변경 commit/push 및 원격 HEAD 일치 확인을 최종 명령으로 수행.
+- 없음. README 경로 변경 commit/push 완료.
 
 ### 남은 작업 순서
-- 원격 반영 검증 후 종료.
+- 요청 범위의 잔여 작업 없음.
 
 ### 다음 실행 명령
 저장소 폴더에서:
