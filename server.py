@@ -127,7 +127,7 @@ def parse_handoff(source, metadata=None):
         checked = re.match(r'^\[([ xX])\]\s*(.*)', text)
         if checked:
             text = checked.group(2)
-        # Recognize explicitly labeled bullets used in isaac_usd's new goal.
+        # Recognize explicitly labeled bullets within handoff sections.
         label = re.match(r'^([^:：]{1,30})[:：]\s*(.+)$', text)
         if label:
             category = inline_keys.get(label.group(1)) or classify_heading(label.group(1))

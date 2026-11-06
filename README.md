@@ -100,3 +100,7 @@ python3 app.py
 ```bash
 python3 -m unittest -v
 ```
+
+## 라이선스
+
+[MIT License](LICENSE)
