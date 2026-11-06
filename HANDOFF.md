@@ -259,3 +259,40 @@ cd /home/junryeol/ws/resume-board
 
 ### 막힌 사항
 - 구현 차단 없음. 현재 Resume Board 서버는 종료된 상태.
+
+
+## 새 목표: README 범용화와 간소화 (2026-11-06)
+
+### 작업 목표와 완료 조건
+- 개인 로컬 환경 중심의 README를 다른 사용자도 설치·사용할 수 있는 안내로 정리하고 commit/push한다.
+
+### 완료한 작업과 변경 파일
+- README.md: 개인 프로젝트명, 전역 Codex 지침, 자동 실행기 설명, 개발 과정 검증 이력 제거.
+- clone부터 실행까지의 빠른 시작, 사용법, 최소 HANDOFF 예시, 데이터·플랫폼 제한, 테스트 명령으로 재구성.
+- README 분량 11,480 → 3,638 bytes(약 68% 감소). 앱 코드 변경 없음.
+
+### 주요 결정과 이유
+- 기존 한국어 문서 유지. 특정 사용자 경로와 도구 설정을 전제로 하지 않는다.
+- 사용에 필요한 실제 제약(Python/POSIX, Linux 폴더 열기, 로컬 실행)을 유지한다.
+- 기존 HANDOFF 이력은 개발 기록으로 보존하고 README에 반복하지 않는다.
+
+### 실행한 검증과 결과
+- python3 -m unittest -v: 19개 모두 통과.
+- README 예시를 실제 parse_handoff로 읽어 목표·완료·진행·할 일 2개·명령 분류와 막힌 사항 없음 확인.
+- README 개인 환경 참조 제거와 git diff --check 통과.
+
+### 진행 중인 부분
+- 문서 변경 commit/push와 원격 일치 확인.
+
+### 남은 작업 순서
+- README 변경 push 후 원격 main과 로컬 HEAD 일치를 확인한다.
+- 최종 전달 결과를 이 인계 기록에 남긴다.
+
+### 다음 실행 명령
+```bash
+git push origin main
+git ls-remote origin refs/heads/main
+```
+
+### 막힌 사항
+- 없음.
