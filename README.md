@@ -6,8 +6,10 @@
 
 Python 3.10 이상이 필요합니다. Git 상태 조회에는 Git이, Linux 파일 관리자 열기에는 `xdg-open`이 필요합니다. 외부 Python 패키지, API 키, 빌드 과정은 없습니다.
 
+저장소를 내려받은 상위 폴더에서 실행합니다. 이미 저장소 폴더 안이라면 `./start.sh`만 실행하세요.
+
 ```bash
-cd /home/junryeol/ws/resume-board
+cd resume-board
 ./start.sh
 ```
 
@@ -15,19 +17,19 @@ cd /home/junryeol/ws/resume-board
 
 ## AGENTS.md와 HANDOFF.md의 역할
 
-| 파일 | 역할 | 이 컴퓨터의 위치 |
+| 파일 | 역할 | 위치와 기준 |
 | --- | --- | --- |
-| 전역 `AGENTS.md` | 에이전트가 따르는 공통 작업·인계 규칙 | `/home/junryeol/.codex/AGENTS.md` |
-| Isaac 프로젝트의 `HANDOFF.md` | Isaac 작업 목표, 진행 상황, 검증, 남은 작업 | `/home/junryeol/isaac_usd/HANDOFF.md` |
-| Resume Board의 `HANDOFF.md` | 이 대시보드 개발 작업의 인계 기록 | `/home/junryeol/ws/resume-board/HANDOFF.md` |
-| 다른 프로젝트의 `HANDOFF.md` | 각 프로젝트의 독립적인 작업 상태 | `해당 프로젝트 폴더/HANDOFF.md` |
+| 전역 `AGENTS.md` | 에이전트가 따르는 공통 작업·인계 규칙 | `~/.codex/AGENTS.md` (사용자 홈 기준) |
+| Isaac 프로젝트의 `HANDOFF.md` | Isaac 작업 목표, 진행 상황, 검증, 남은 작업 | `./HANDOFF.md` (`isaac_usd` 폴더 기준) |
+| Resume Board의 `HANDOFF.md` | 이 대시보드 개발 작업의 인계 기록 | `./HANDOFF.md` (`resume-board` 폴더 기준) |
+| 다른 프로젝트의 `HANDOFF.md` | 각 프로젝트의 독립적인 작업 상태 | `./HANDOFF.md` (각 프로젝트 폴더 기준) |
 
-위 경로는 현재 사용자 환경의 예시이며 프로그램에 고정된 조회 경로가 아닙니다. 정확한 파일 이름은 **`AGENTS.md`**, **`HANDOFF.md`**입니다. Linux에서는 대소문자도 구분합니다.
+문서의 `./`는 명시된 프로젝트 폴더를, `~`는 현재 사용자의 홈 폴더를 뜻합니다. 위 경로는 프로그램에 고정된 조회 경로가 아닙니다. 정확한 파일 이름은 **`AGENTS.md`**, **`HANDOFF.md`**입니다. Linux에서는 대소문자도 구분합니다.
 
 - **작업 지침은 전역으로, 작업 상태는 프로젝트별로 관리합니다.** 홈의 `HANDOFF.md` 하나로 모든 프로젝트를 묶지 않습니다.
 - Isaac 프로젝트를 Resume Board 폴더 안으로 옮길 필요가 없습니다. 기존 위치를 그대로 등록합니다.
 - 대시보드는 **등록한 폴더 바로 안의 `HANDOFF.md`**를 읽습니다. 부모 폴더의 인계 파일로 대체하거나 하위 폴더를 재귀 탐색하지 않습니다.
-- 예를 들어 `/home/junryeol/isaac_usd`를 등록하면 그 안의 `HANDOFF.md`를 읽습니다. Git 저장소가 `origin_Btype_tofu`에만 있다면 루트의 Git 상태로 대신 표시하지 않습니다. 해당 저장소를 별도로 등록하면 Git 정보는 확인할 수 있지만 부모의 인계 기록은 상속하지 않습니다.
+- 예를 들어 `isaac_usd` 폴더를 등록하면 그 안의 `HANDOFF.md`를 읽습니다. Git 저장소가 `origin_Btype_tofu`에만 있다면 루트의 Git 상태로 대신 표시하지 않습니다. 해당 저장소를 별도로 등록하면 Git 정보는 확인할 수 있지만 부모의 인계 기록은 상속하지 않습니다.
 - 대시보드는 `AGENTS.md`를 실행하거나 편집하지 않습니다. `AGENTS.md`나 `WORK_STATE.json`에만 있는 할 일을 자동으로 가져오거나 새 작업을 생성하지 않습니다.
 
 ## 현재 전역 AGENTS.md에 설정된 작업 규칙
@@ -92,7 +94,8 @@ cd /home/junryeol/ws/resume-board
 
 ## 다음 실행 명령
 ```bash
-cd /home/user/ws/my-project
+# 공통 작업 폴더에서 해당 프로젝트로 이동
+cd my-project
 python3 app.py
 ```
 
@@ -109,7 +112,7 @@ python3 app.py
 ## 사용 순서
 
 1. 처음 실행하면 Resume Board 자체가 등록되어 인계 내용을 보여줍니다.
-2. **프로젝트 등록**에 프로젝트 폴더의 절대 경로를 입력합니다. Isaac 작업은 `/home/junryeol/isaac_usd`를 입력하면 됩니다.
+2. **프로젝트 등록**에는 실제 프로젝트 폴더의 절대 경로를 입력합니다. 터미널에서 해당 프로젝트 폴더로 이동한 뒤 `pwd -P`로 확인한 값을 붙여넣으세요. 문서의 상대경로 표기와 달리 등록 입력은 절대 경로 또는 `~/...` 형식을 사용합니다.
 3. 왼쪽 목록에서 프로젝트를 선택해 작업 개요를 확인합니다.
 4. **인계 기록**에서 원문을, **Git 변경사항**에서 변경 파일·브랜치·마지막 커밋을 확인합니다.
 5. 실행 명령의 **복사**를 누른 뒤 터미널에 붙여넣어 실행합니다. 웹에서 명령을 자동 실행하지 않습니다.
