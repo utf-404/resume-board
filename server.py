@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 """Resume Board: dependency-free, loopback-only project dashboard."""
 import argparse
-import hashlib
 import ipaddress
 import json
 import mimetypes
-import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
-import threading
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, urlsplit
+
+from project_store import ProjectStore
 
 ROOT = Path(__file__).resolve().parent
 MAX_BODY = 16384
@@ -41,13 +40,24 @@ def classify_heading(value):
     return None
 
 
-def parse_handoff(source):
+def is_empty_status(text):
+    normalized = re.sub(r'\s+', ' ', text.strip()).rstrip('.!。').strip()
+    return bool(re.fullmatch(
+        r'(?:없음|해당 없음|미기록|none|n/a|'
+        r'(?:(?:요청 범위의|필수|현재|구현) )*'
+        r'(?:(?:남은|잔여|미완료|차단|막힌|필수|구현|작업|사항|항목) ?)+없음)',
+        normalized, re.I))
+
+
+def parse_handoff(source, metadata=None):
     """Read headings, keeping historical goals out of the current summary.
 
     Explicit new-goal headings define a current scope. When that scope contains
     dated/narrative updates, only its latest update supplies live progress/tasks.
     The complete original document remains available in the handoff tab.
     """
+    metadata = {} if metadata is None else metadata
+    empty_remaining = False
     keys = ('goal', 'completed', 'remaining', 'commands', 'blocked',
             'in_progress', 'decisions', 'validation')
     sections = {key: [] for key in keys}
@@ -72,8 +82,12 @@ def parse_handoff(source):
     start = boundaries[-1][0] if boundaries else 0
     # Narrative updates are not task headings. For an explicitly scoped goal,
     # retain only the latest update as live progress, rather than stale history.
+    # Only peer progress entries directly under the current goal can supersede
+    # history. Nested task details inherit their task section and never erase it.
+    structural = re.compile(r'^(?:세부|상세|참고|메모|설명|예시|주의|detail|note|example)', re.I)
     updates = [h for h in headings if boundaries and h[0] > start
-               and h[1] > boundaries[-1][1] and classify_heading(h[2]) is None]
+               and h[1] == boundaries[-1][1] + 1
+               and classify_heading(h[2]) is None and not structural.search(h[2])]
     latest_update = updates[-1][0] if updates else None
     stack = []
     fence, block, block_active = None, [], None
@@ -97,7 +111,7 @@ def parse_handoff(source):
             while stack and stack[-1][0] >= level:
                 stack.pop()
             category = classify_heading(title)
-            if latest_update is not None and index >= latest_update and category is None:
+            if index == latest_update and category is None:
                 category = 'in_progress'
             stack.append((level, category))
             continue
@@ -120,8 +134,7 @@ def parse_handoff(source):
             if category:
                 active = category
                 text = label.group(2)
-            elif active == 'goal':
-                # Role/metadata bullets under a goal are not goal statements.
+            elif active == 'goal' and label.group(1).strip().lower() in ('역할', '담당', 'agents', 'agent'):
                 continue
         if latest_update is not None:
             if index < latest_update and index > start and active in ('remaining', 'commands', 'blocked', 'in_progress'):
@@ -131,11 +144,23 @@ def parse_handoff(source):
         if active:
             if checked and checked.group(1).lower() == 'x' and active == 'remaining':
                 active = 'completed'
-            if active == 'commands' and text.startswith('`') and text.endswith('`'):
+            if active == 'commands':
+                # Copy only fenced commands or explicitly inline-code commands;
+                # explanatory prose such as '저장소 폴더에서:' is never executable.
+                if not (text.startswith('`') and text.endswith('`') and len(text) > 2):
+                    continue
                 text = text[1:-1]
+            if active in ('remaining', 'blocked', 'in_progress') and is_empty_status(text):
+                if active == 'remaining' and text.strip().rstrip('.!。').strip() != '미기록':
+                    empty_remaining = True
+                continue
             sections[active].append(text)
     if fence and block_active and block:
         sections[block_active].append('\n'.join(block))
+    empty_remaining = empty_remaining or any(is_empty_status(item) and item.strip().rstrip('.!。').strip() != '미기록' for item in sections['remaining'])
+    for key in ('remaining', 'blocked', 'in_progress'):
+        sections[key] = [item for item in sections[key] if not is_empty_status(item)]
+    metadata['remaining_status'] = 'recorded' if sections['remaining'] else ('none' if empty_remaining else 'unrecorded')
     return sections
 
 
@@ -206,7 +231,9 @@ def project_snapshot(entry):
                 data['updated_at'] = datetime.fromtimestamp(handoff_path.stat().st_mtime, timezone.utc).isoformat()
         except (OSError, UnicodeError, ValueError) as exc:
             data['error'] = str(exc)
-    data['sections'] = parse_handoff(data['handoff'])
+    metadata = {}
+    data['sections'] = parse_handoff(data['handoff'], metadata)
+    data['remaining_status'] = metadata['remaining_status']
     data['summary_note'] = ('새 목표 이후의 내용과 최신 진행 기록을 기준으로 요약합니다. '
                             '명시된 다음 할 일이 없더라도 작업 완료를 뜻하지 않습니다. '
                             '상세 조건 변경은 인계 원문을 함께 확인하세요.'
@@ -214,68 +241,6 @@ def project_snapshot(entry):
                                          data['handoff'], re.M | re.I) else '')
     data['git'] = git_snapshot(path) if path.is_dir() else dict(available=False, branch=None, changed_count=0, files=[], last_commit=None, error=None)
     return data
-
-
-class ProjectStore:
-    def __init__(self, file, initial=ROOT):
-        self.file = Path(file)
-        self.lock = threading.Lock()
-        if self.file.exists():
-            try:
-                self.entries = json.loads(self.file.read_text())
-                if not isinstance(self.entries, list) or any(not isinstance(x, dict) or not isinstance(x.get('path'), str) or not isinstance(x.get('id'), str) for x in self.entries):
-                    raise ValueError('Invalid project list')
-            except (ValueError, OSError) as exc:
-                raise RuntimeError(f'프로젝트 등록 파일을 읽을 수 없습니다: {self.file}: {exc}') from exc
-        else:
-            self.entries = [self.entry(Path(initial).resolve())] if initial else []
-            self.save()
-
-    @staticmethod
-    def entry(path):
-        return {'id': hashlib.sha256(str(path).encode()).hexdigest()[:16], 'path': str(path)}
-
-    def save(self):
-        self.file.parent.mkdir(parents=True, exist_ok=True)
-        temporary = self.file.with_suffix('.tmp')
-        temporary.write_text(json.dumps(self.entries, ensure_ascii=False, indent=2), encoding='utf-8')
-        os.replace(temporary, self.file)
-
-    def list(self):
-        with self.lock:
-            return [dict(x) for x in self.entries]
-
-    def add(self, raw):
-        if not isinstance(raw, str) or not raw.strip() or not Path(raw).expanduser().is_absolute():
-            raise ValueError('프로젝트 폴더의 절대 경로를 입력해 주세요.')
-        path = Path(raw).expanduser().resolve()
-        if not path.is_dir():
-            raise ValueError('존재하는 폴더 경로를 입력해 주세요.')
-        entry = self.entry(path)
-        with self.lock:
-            if entry in self.entries:
-                return entry, False
-            previous = self.entries[:]
-            self.entries.append(entry)
-            try:
-                self.save()
-            except OSError:
-                self.entries = previous
-                raise
-        return entry, True
-
-    def remove(self, identifier):
-        with self.lock:
-            previous = self.entries[:]
-            self.entries = [x for x in self.entries if x['id'] != identifier]
-            if len(previous) == len(self.entries):
-                return False
-            try:
-                self.save()
-            except OSError:
-                self.entries = previous
-                raise
-            return True
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -315,7 +280,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({'error': '로컬 주소에서만 접근할 수 있습니다.'}, 403)
         route = urlsplit(self.path).path
         if route == '/api/projects':
-            return self.send_json({'projects': [project_snapshot(x) for x in self.server.store.list()]})
+            try:
+                return self.send_json({'projects': [project_snapshot(x) for x in self.server.store.list()]})
+            except (OSError, RuntimeError) as exc:
+                return self.send_json({'error': str(exc)}, 500)
         if route.startswith('/api/'):
             return self.send_json({'error': 'API를 찾을 수 없습니다.'}, 404)
         static = self.server.static_dir.resolve()
@@ -379,8 +347,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({'error': '지원하지 않는 요청입니다.'}, 405)
         except (ValueError, UnicodeError) as exc:
             return self.send_json({'error': str(exc)}, 400)
-        except OSError:
-            return self.send_json({'error': '로컬 파일 작업을 완료하지 못했습니다.'}, 500)
+        except (OSError, RuntimeError):
+            return self.send_json({'error': '로컬 등록 파일을 읽거나 저장하지 못했습니다. 파일 상태를 확인해 주세요.'}, 500)
 
     do_POST = mutate
     do_DELETE = mutate
@@ -391,7 +359,7 @@ def create_server(host='127.0.0.1', port=8765, store=None, static_dir=None):
         raise ValueError('서버는 로컬 루프백 주소에서만 실행할 수 있습니다.')
     # IPv4 defaults support all ordinary local browser sessions.
     server = ThreadingHTTPServer((host, port), Handler)
-    server.store = store if store is not None else ProjectStore(ROOT / '.data/projects.json')
+    server.store = store if store is not None else ProjectStore(ROOT / '.data/projects.json', initial=ROOT)
     server.static_dir = Path(static_dir or ROOT / 'static')
     return server
 

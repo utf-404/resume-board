@@ -46,7 +46,7 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(sections['completed'], ['서버'])
         self.assertEqual(sections['remaining'], ['화면 확인'])
         self.assertEqual(sections['commands'], ['cd "한글 project"\n# comment\npython3 server.py'])
-        self.assertEqual(sections['blocked'], ['없음'])
+        self.assertEqual(sections['blocked'], [])
 
     def test_standard_agents_handoff_sections_stay_distinct(self):
         text = """# 인계
@@ -107,6 +107,51 @@ old-command
         self.assertEqual(result['remaining'], ['결과 확인'])
         self.assertEqual(result['commands'], [])
         self.assertEqual(result['in_progress'], ['새 제품 시험 중. 성공은 미확정.'])
+
+    def test_task_details_do_not_erase_commands_or_remaining(self):
+        for heading in ('#### 세부 단계', '### 세부 단계'):
+            with self.subTest(heading=heading):
+                text = """## 새 목표: 기능 개발
+### 다음 실행 명령
+```bash
+python3 app.py
+```
+### 남은 작업 순서
+- 기능 구현
+""" + heading + "\n- API 확인\n"
+                result = parse_handoff(text)
+                self.assertEqual(result['commands'], ['python3 app.py'])
+                self.assertEqual(result['remaining'], ['기능 구현', 'API 확인'] if heading.startswith('####') else ['기능 구현'])
+                self.assertEqual(result['in_progress'], [])
+
+    def test_colon_goal_statements_are_preserved(self):
+        goals = ['처리량: 분당 90개 달성', '제품 크기: 130mm 유지', 'API: v2 구현']
+        result = parse_handoff('## 목표와 완료 조건\n' + '\n'.join('- ' + x for x in goals))
+        self.assertEqual(result['goal'], goals)
+
+    def test_command_prose_and_no_work_are_not_action_items(self):
+        text = """## 남은 작업 순서
+- 요청 범위의 잔여 작업 없음.
+- 필수 구현 잔여 없음.
+- 없음
+## 막힌 사항
+- 없음.
+## 다음 실행 명령
+저장소 폴더에서:
+Python: python3
+```bash
+cd "my project"
+# keep command comments and indentation
+python3 app.py
+```
+또는 다음 명령을 사용하세요.
+`./start.sh --port 8766`
+"""
+        result = parse_handoff(text)
+        self.assertEqual(result['remaining'], [])
+        self.assertEqual(result['blocked'], [])
+        self.assertEqual(result['commands'], ['cd "my project"\n# keep command comments and indentation\npython3 app.py', './start.sh --port 8766'])
+        self.assertEqual(parse_handoff('## 남은 작업\n- 차단 사항 없음 확인 테스트 작성')['remaining'], ['차단 사항 없음 확인 테스트 작성'])
 
     def test_registration_persistence_delete_and_missing_folder(self):
         status, raw = self.request('POST', '/api/projects', {'path': str(self.project)})
@@ -170,6 +215,32 @@ old-command
         child = self.project / 'nested'
         child.mkdir()
         self.assertFalse(git_snapshot(child)['available'])
+
+    def test_remaining_state_distinguishes_none_from_unrecorded(self):
+        entry = ProjectStore.entry(self.project)
+        handoff = self.project / 'HANDOFF.md'
+        for text, expected in (
+            ('## 남은 작업\n- 요청 범위의 잔여 작업 없음.', 'none'),
+            ('## 목표\n- 화면 구현', 'unrecorded'),
+            ('## 남은 작업\n- 미기록', 'unrecorded'),
+            ('## 남은 작업\n- API 확인', 'recorded'),
+        ):
+            with self.subTest(expected=expected):
+                handoff.write_text(text)
+                self.assertEqual(project_snapshot(entry)['remaining_status'], expected)
+
+    def test_running_server_reports_corrupt_store_without_overwriting(self):
+        invalid = '{invalid'
+        self.store.file.write_text(invalid)
+        for method, route, data in (
+            ('GET', '/api/projects', None),
+            ('POST', '/api/projects', {'path': str(self.project)}),
+        ):
+            with self.subTest(method=method):
+                status, raw = self.request(method, route, data)
+                self.assertEqual(status, 500)
+                self.assertIn('error', json.loads(raw))
+                self.assertEqual(self.store.file.read_text(), invalid)
 
     def test_handoff_snapshot(self):
         (self.project / 'HANDOFF.md').write_text('## 목표\n- 화면 구현\n', encoding='utf-8')
